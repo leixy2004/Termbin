@@ -10,4 +10,5 @@ class Paste(models.Model):
     id = models.UUIDField(primary_key=True,default=uuid.uuid4)
     # def get_absolute_url(self):
     #     return reverse("model_detail", kwargs={"pk": self.pk})
-    
+    def __str__(self) -> str:
+        return self.paste_data
