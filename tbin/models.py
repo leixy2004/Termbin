@@ -12,3 +12,9 @@ class Paste(models.Model):
     #     return reverse("model_detail", kwargs={"pk": self.pk})
     def __str__(self) -> str:
         return self.paste_text
+    def absdd(self):
+        return "23423423"
+    # def get_absolute_url(self):
+    #     return reverse("paste_detail", kwargs={"pk": self.pk})
+    #     return reverse("paste_detail", kwargs={"pk": self.pk})
+    

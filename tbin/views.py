@@ -10,6 +10,14 @@ def index(request : HttpRequest):
         text=text.strip(b'\r\n')
         paste=Paste(paste_text=text.decode(),paste_digest=hash(text))
         paste.save()
+        # return HttpResponse("date:",paste.pub_date,
+        #                     "\ndigest:",paste.paste_digest,
+        #                     "\nsize:",paste.paste_text.len(),
+        #                     "\nurl:",paste.get_absolute_url())
+        response="Date:%s\r\nDigest:%s\r\nSize:%d\r\nUrl:\r\n"%(str(paste.pub_date),
+                                                                  paste.paste_digest,
+                                                                  len(paste.paste_text))
+        return HttpResponse(response)
     return HttpResponse("Here is INDEX.")
 
 def detail(request,paste_uuid):
