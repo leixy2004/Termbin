@@ -6,14 +6,10 @@ from django.urls import reverse
 class Paste(models.Model):
     paste_text = models.TextField()
     pub_date = models.DateTimeField(auto_now=True)
-    paste_digest = models.CharField(max_length=200)
-    id = models.UUIDField(primary_key=True,default=uuid.uuid4)
-    # def get_absolute_url(self):
-    #     return reverse("model_detail", kwargs={"pk": self.pk})
+    paste_digest = models.CharField(max_length=50)
+    id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     def __str__(self) -> str:
         return self.paste_text
-    def absdd(self):
-        return "23423423"
     def get_absolute_url(self):
-        return reverse("detail", args=[str(self.pk)])
+        return reverse("detail", args=[str(self.pk),])
     

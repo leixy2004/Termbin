@@ -1,23 +1,22 @@
 from django.shortcuts import render
-from django.http import HttpResponse,HttpRequest, Http404
+from django.http import HttpResponse,HttpRequest
 from .models import Paste
+import hashlib
+
+def clean_body(text : bytes):
+    return text[text.find(b'\r\n',text.find(b'\r\n',text.find(b'\r\n')+1)+1)
+                  :text.rfind(b'\r\n',0,text.rfind(b'\r\n')-1)].strip(b'\r\n').decode()+"\n"
+
 # Create your views here.
 def index(request : HttpRequest):
     if request.method == "POST":
-        text = request.body
-        text=text[text.find(b'\r\n',text.find(b'\r\n',text.find(b'\r\n')+1)+1)
-                  :text.rfind(b'\r\n',0,text.rfind(b'\r\n')-1)]
-        text=text.strip(b'\r\n')
-        paste=Paste(paste_text=text.decode(),paste_digest=hash(text.decode()))
+        text=clean_body(request.body)
+        paste=Paste(paste_text=text,paste_digest=hashlib.sha256(text.encode()).hexdigest())
         paste.save()
-        # return HttpResponse("date:",paste.pub_date,
-        #                     "\ndigest:",paste.paste_digest,
-        #                     "\nsize:",paste.paste_text.len(),
-        #                     "\nurl:",paste.get_absolute_url())
-        response="Date:%s\r\nDigest:%s\r\nSize:%d\r\nUrl:%s\r\n"%(str(paste.pub_date),
-                                                                  paste.paste_digest,
-                                                                  len(paste.paste_text),
-                                                                  paste.get_absolute_url())
+        response="Date: %s\r\nDigest: %s\r\nSize: %d\r\nUrl: %s\r\n" % (str(paste.pub_date),
+                                                                        paste.paste_digest,
+                                                                        len(paste.paste_text),
+                                                                        request.build_absolute_uri(paste.get_absolute_url()))
         return HttpResponse(response)
     return HttpResponse("Here is INDEX.")
 
@@ -27,16 +26,12 @@ def detail(request:HttpRequest,paste_uuid):
     except Paste.DoesNotExist:
         return HttpResponse("No paste here.")
     if request.method == "DELETE":
-        print("Haha")
         paste.delete()
         return HttpResponse(str(paste_uuid)+" Deleted.\n")
     if request.method == "PUT":
-        text = request.body
-        text=text[text.find(b'\r\n',text.find(b'\r\n',text.find(b'\r\n')+1)+1)
-                  :text.rfind(b'\r\n',0,text.rfind(b'\r\n')-1)]
-        text=text.strip(b'\r\n')
-        paste.paste_text=text.decode()
-        paste.paste_digest=hash(text.decode())
+        text = clean_body(request.body)
+        paste.paste_text=text
+        paste.paste_digest=hashlib.sha256(paste.paste_text.encode()).hexdigest()
         paste.save()
-        return HttpResponse(request.get_full_path()+" modified.")
+        return HttpResponse(request.get_full_path()+" Modified.")
     return HttpResponse(paste)
