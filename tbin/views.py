@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse,HttpRequest
-from .models import Paste
+from .models import Paste,User
 import hashlib
 
 def clean_body(text : bytes):
@@ -22,6 +22,8 @@ def index(request : HttpRequest):
         paste.save()
         response="Date: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
         return HttpResponse(response)
+    if request.session.exists("user_uuid"):
+        return HttpResponse("Welcome,%s! Here is INDEX." % User.objects.get(pk=request.session["user_uuid"]))
     return HttpResponse("Here is INDEX.")
 
 def detail(request:HttpRequest,paste_uuid):
@@ -55,3 +57,35 @@ def detail_by_short(request:HttpRequest, short_id):
         paste.save()
         return HttpResponse(str(short_id)+" Modified.")
     return HttpResponse(paste)
+
+def register(request : HttpRequest):
+    print(request.body)
+    name=request.POST.get("name")
+    password=request.POST.get("password")
+    print(name,password)
+    if (User.objects.filter(username=name).count()):
+        return HttpResponse("The name has been used.")
+    user=User(username=name)    
+    user.set_password(password=password)
+    user.save()
+    return HttpResponse("User %s has been created successfully." % user.username)
+
+def login(request : HttpRequest):
+    if request.session.exists("user_uuid"):
+        return HttpResponse("You had been logged in!")
+    try:
+        user=User.objects.get(username=request.POST["name"])
+    except User.DoesNotExist:
+        return HttpResponse("There is not such user.")
+    if (user.check_password(request.POST["password"])):
+        request.session["user_uuid"]=str(user.id)
+        return HttpResponse("Welcome, %s!" % user.username)
+    else:
+        return HttpResponse("Login failed.")
+    
+def logout(request : HttpRequest):
+    try:
+        del request.session["user_uuid"]
+    except KeyError:
+        return HttpResponse("You had been logged out already.")
+    return HttpResponse("You are logged out successfully.")
