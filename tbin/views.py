@@ -13,7 +13,6 @@ def index(request : HttpRequest):
         text=clean_body(request.body)
         hash_text=hashlib.sha256(text.encode())
         paste=Paste(paste_text=text,paste_digest=hash_text.hexdigest())
-        # print(paste.id)
         for t in str(paste.id).split('-')[1:-1]:
             if Paste.objects.filter(short_id=t).count() == 0:
                 paste.short_id=t
@@ -22,9 +21,13 @@ def index(request : HttpRequest):
         paste.save()
         response="Date: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
         return HttpResponse(response)
-    if request.session.exists("user_uuid"):
-        return HttpResponse("Welcome,%s! Here is INDEX." % User.objects.get(pk=request.session["user_uuid"]))
-    return HttpResponse("Here is INDEX.")
+    try:
+        id=request.session["user_uuid"]
+    except KeyError:
+        return HttpResponse("Here is INDEX.")
+    return HttpResponse("Welcome,%s! Here is INDEX." % User.objects.get(pk=request.session["user_uuid"]).username)
+    # print(request.session["user_uuid"])
+
 
 def detail(request:HttpRequest,paste_uuid):
     try:
@@ -71,17 +74,21 @@ def register(request : HttpRequest):
     return HttpResponse("User %s has been created successfully." % user.username)
 
 def login(request : HttpRequest):
-    if request.session.exists("user_uuid"):
+    print(request.session["user_uuid"])
+    if "user_uuid" in request.session:
         return HttpResponse("You had been logged in!")
-    try:
-        user=User.objects.get(username=request.POST["name"])
-    except User.DoesNotExist:
-        return HttpResponse("There is not such user.")
-    if (user.check_password(request.POST["password"])):
-        request.session["user_uuid"]=str(user.id)
-        return HttpResponse("Welcome, %s!" % user.username)
-    else:
-        return HttpResponse("Login failed.")
+    if request.method=="POST":
+        try:
+            user=User.objects.get(username=request.POST["name"])
+        except User.DoesNotExist:
+            return HttpResponse("There is not such user.")
+    
+        if (user.check_password(request.POST["password"])):
+            request.session["user_uuid"]=str(user.id)
+            return HttpResponse("Welcome, %s!" % user.username)
+        else:
+            return HttpResponse("Login failed. Please try again.")
+    return HttpResponse("Please use \"-d \"name=...&password=...\"\" to login.")
     
 def logout(request : HttpRequest):
     try:
