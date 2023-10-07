@@ -3,14 +3,14 @@ from django.http import HttpResponse,HttpRequest
 from .models import Paste,User
 import hashlib
 
-def clean_body(text : bytes):
+def __clean_body(text : bytes):
     return text[text.find(b'\r\n',text.find(b'\r\n',text.find(b'\r\n')+1)+1)
                   :text.rfind(b'\r\n',0,text.rfind(b'\r\n')-1)].strip(b'\r\n').decode()+"\n"
 
 # Create your views here.
 def index(request : HttpRequest):
     if request.method == "POST":
-        text=clean_body(request.body)
+        text=__clean_body(request.body)
         hash_text=hashlib.sha256(text.encode())
         paste=Paste(paste_text=text,paste_digest=hash_text.hexdigest())
         for t in str(paste.id).split('-')[1:-1]:
@@ -20,12 +20,24 @@ def index(request : HttpRequest):
             print("WRONG")
         paste.save()
         response="Date: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
+        if "user_uuid" in request.session:
+            print("FFFF")
+            try:
+                paste.author=User.objects.get(pk=request.session["user_uuid"])
+                paste.save()
+                response+="Author: %s\r\n" % paste.author.username
+            except KeyError:
+                print("WRONG")
+            
         return HttpResponse(response)
-    try:
-        id=request.session["user_uuid"]
-    except KeyError:
-        return HttpResponse("Here is INDEX.")
-    return HttpResponse("Welcome,%s! Here is INDEX." % User.objects.get(pk=request.session["user_uuid"]).username)
+    
+    if "user_uuid" in request.session:
+        try:
+            user=User.objects.get(pk=request.session["user_uuid"])
+        except User.DoesNotExist:
+            return HttpResponse("Dangerous ERROR!")
+        return HttpResponse("Welcome,%s! Here is INDEX." % user.username)
+    return HttpResponse("Here is INDEX.")
     # print(request.session["user_uuid"])
 
 
@@ -38,7 +50,7 @@ def detail(request:HttpRequest,paste_uuid):
         paste.delete()
         return HttpResponse(str(paste_uuid)+" Deleted.")
     if request.method == "PUT":
-        text = clean_body(request.body)
+        text = __clean_body(request.body)
         paste.paste_text=text
         paste.paste_digest=hashlib.sha256(paste.paste_text.encode()).hexdigest()
         paste.save()
@@ -54,7 +66,7 @@ def detail_by_short(request:HttpRequest, short_id):
         paste.delete()
         return HttpResponse(str(short_id)+" Deleted.")
     if request.method == "PUT":
-        text = clean_body(request.body)
+        text = __clean_body(request.body)
         paste.paste_text=text
         paste.paste_digest=hashlib.sha256(paste.paste_text.encode()).hexdigest()
         paste.save()
@@ -74,7 +86,6 @@ def register(request : HttpRequest):
     return HttpResponse("User %s has been created successfully." % user.username)
 
 def login(request : HttpRequest):
-    print(request.session["user_uuid"])
     if "user_uuid" in request.session:
         return HttpResponse("You had been logged in!")
     if request.method=="POST":
@@ -96,3 +107,6 @@ def logout(request : HttpRequest):
     except KeyError:
         return HttpResponse("You had been logged out already.")
     return HttpResponse("You are logged out successfully.")
+
+def make_private(request: HttpRequest):
+    pass
