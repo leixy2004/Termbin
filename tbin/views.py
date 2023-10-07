@@ -19,7 +19,7 @@ def index(request : HttpRequest):
                 break
             print("WRONG")
         paste.save()
-        response="Date: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
+        response="Status: Created\r\nDate: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
         if "user_uuid" in request.session:
             try:
                 paste.author=User.objects.get(pk=request.session["user_uuid"])
@@ -149,5 +149,28 @@ def make_private(request: HttpRequest,paste_uuid):
         return HttpResponse("Successful.")
     return HttpResponse("Not logged in yet.")
 
-def add_viewer(request: HttpRequest):
-    pass
+def add_viewer(request: HttpRequest,paste_uuid):
+    if request.method!="POST":
+        return HttpResponse("Please submit the name.")
+    if "user_uuid" in request.session:
+        try:
+            user=User.objects.get(pk=request.session["user_uuid"])
+        except User.DoesNotExist:
+            return HttpResponse("Dangerous ERROR!")
+        try:
+            paste = Paste.objects.get(pk=paste_uuid)
+        except Paste.DoesNotExist:
+            return HttpResponse("No paste here.")
+        if not paste.author or paste.author.id!=user.id:
+            return HttpResponse("The paste does not belong to you.")
+        try:
+            add_user=User.objects.get(username=request.POST["name"])
+        except KeyError:
+            return HttpResponse("Please submit the name.")
+        except User.DoesNotExist:
+            return HttpResponse("The user does not exist.")
+        
+        paste.acceptable_viewer.add(add_user)
+        paste.save()
+        return HttpResponse("Successful.")
+    return HttpResponse("Not logged in yet.")
