@@ -19,7 +19,7 @@ def index(request : HttpRequest):
                 break
             print("WRONG")
         paste.save()
-        response="Date: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
+        response="Status: Created\r\nDate: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
         if "user_uuid" in request.session:
             try:
                 paste.author=User.objects.get(pk=request.session["user_uuid"])
