@@ -15,11 +15,13 @@ class User(models.Model):
 # Create your models here.
 class Paste(models.Model):
     paste_text = models.TextField()
-    pub_date = models.DateTimeField(auto_now=True)
+    pub_date = models.DateTimeField(auto_now_add=True)
     paste_digest = models.CharField(max_length=70)
     id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     short_id = models.CharField(max_length=4)
-    author = models.ForeignKey(User,on_delete=models.CASCADE)
+    author = models.ForeignKey(User,on_delete=models.CASCADE,related_name="pinned_paste",blank=True,null=True)
+    view_limited = models.BooleanField(default=False)
+    acceptable_viewer = models.ManyToManyField(User,related_name="accessable_paste",default=None,blank=True)
     def __str__(self) -> str:
         return self.paste_text
     def get_absolute_url(self):
