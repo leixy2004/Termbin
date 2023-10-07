@@ -21,7 +21,6 @@ def index(request : HttpRequest):
         paste.save()
         response="Date: %s\r\nDigest: %s\r\nUUID: %s\r\nShort: %s\r\nSize: %d\r\nUrl: %s\r\n" %(str(paste.pub_date),paste.paste_digest,paste.id,paste.short_id,len(paste.paste_text),request.build_absolute_uri(paste.get_absolute_url()))
         if "user_uuid" in request.session:
-            print("FFFF")
             try:
                 paste.author=User.objects.get(pk=request.session["user_uuid"])
                 paste.save()
@@ -30,7 +29,7 @@ def index(request : HttpRequest):
                 print("WRONG")
             
         return HttpResponse(response)
-    
+    # GET
     if "user_uuid" in request.session:
         try:
             user=User.objects.get(pk=request.session["user_uuid"])
@@ -46,6 +45,17 @@ def detail(request:HttpRequest,paste_uuid):
         paste = Paste.objects.get(pk=paste_uuid)
     except Paste.DoesNotExist:
         return HttpResponse("No paste here.")
+    if paste.view_limited:
+        if "user_uuid" in request.session:
+            try:
+                user=User.objects.get(pk=request.session["user_uuid"])
+            except User.DoesNotExist:
+                return HttpResponse("Dangerous ERROR!")
+            if user not in paste.acceptable_viewer.all():
+                return HttpResponse("You are blocked out in this paste.")
+        else:
+            return HttpResponse("You are blocked out in this paste.")
+        
     if request.method == "DELETE":
         paste.delete()
         return HttpResponse(str(paste_uuid)+" Deleted.")
@@ -62,6 +72,16 @@ def detail_by_short(request:HttpRequest, short_id):
         paste = Paste.objects.get(short_id=short_id)
     except Paste.DoesNotExist:
         return HttpResponse("No paste here.")
+    if paste.view_limited:
+        if "user_uuid" in request.session:
+            try:
+                user=User.objects.get(pk=request.session["user_uuid"])
+            except User.DoesNotExist:
+                return HttpResponse("Dangerous ERROR!")
+            if user not in paste.acceptable_viewer.all():
+                return HttpResponse("You are blocked out in this paste.")
+        else:
+            return HttpResponse("You are blocked out in this paste.")
     if request.method == "DELETE":
         paste.delete()
         return HttpResponse(str(short_id)+" Deleted.")
@@ -74,10 +94,13 @@ def detail_by_short(request:HttpRequest, short_id):
     return HttpResponse(paste)
 
 def register(request : HttpRequest):
-    print(request.body)
-    name=request.POST.get("name")
-    password=request.POST.get("password")
-    print(name,password)
+    # print(request.body)
+    try:
+        name=request.POST.get("name")
+        password=request.POST.get("password")
+    except KeyError:
+        return HttpResponse("ERROR")
+    # print(name,password)
     if (User.objects.filter(username=name).count()):
         return HttpResponse("The name has been used.")
     user=User(username=name)    
@@ -108,5 +131,23 @@ def logout(request : HttpRequest):
         return HttpResponse("You had been logged out already.")
     return HttpResponse("You are logged out successfully.")
 
-def make_private(request: HttpRequest):
+def make_private(request: HttpRequest,paste_uuid):
+    if "user_uuid" in request.session:
+        try:
+            user=User.objects.get(pk=request.session["user_uuid"])
+        except User.DoesNotExist:
+            return HttpResponse("Dangerous ERROR!")
+        try:
+            paste = Paste.objects.get(pk=paste_uuid)
+        except Paste.DoesNotExist:
+            return HttpResponse("No paste here.")
+        if not paste.author or paste.author.id!=user.id:
+            return HttpResponse("The paste does not belong to you.")
+        paste.view_limited=True
+        paste.acceptable_viewer.add(user)
+        paste.save()
+        return HttpResponse("Successful.")
+    return HttpResponse("Not logged in yet.")
+
+def add_viewer(request: HttpRequest):
     pass
