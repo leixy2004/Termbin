@@ -24,4 +24,4 @@ Trying to master git and github.
 
 ### Day 4 ~ 5: Oct. 6 ~ 7th.
 
-实现User，签名，和对作者的访问特权。
+实现 User，签名，和选定用户的访问特权。完成任务书中第五天的内容。
