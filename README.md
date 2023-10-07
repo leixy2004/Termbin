@@ -22,3 +22,6 @@ Trying to master git and github.
 
 在对各种情况进行试错后，成功实现了基本功能。
 
+### Day 4 ~ 5: Oct. 6 ~ 7th.
+
+实现User，签名，和对作者的访问特权。
